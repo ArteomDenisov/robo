@@ -1,6 +1,6 @@
 from time import time
 from multiprocessing import Pool
-from master import DataLoader
+import DataLoader
 import copy
 import numpy as np
 import math
@@ -8,27 +8,11 @@ import math
 # comeback -------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 def pusharray(array, a):
     array.append(a)
     array.pop(0)
     return array
-
-
-def deal_close_price(candles, candles_1m):
-    arr_long = []
-    arr_short = []
-    i15 = 0
-    i1 = 0
-    for candle in candles:
-        if candle.date == candles_1m[i1].date and candle.time == candles_1m[i1].time:
-            pass
-        i15 += 1
-    #
-    #
-    #
-    #
-    #
-    return arr_long, arr_short
 
 
 def kanaliMax(candles, chanel):
@@ -1099,354 +1083,6 @@ def chanelestimate(candles, params, arr_signal, arr_mm_long=None, arr_mm_short=N
     return a
 
 
-def deal_analitics(all_export, params):
-    deals = []
-    deal = ['DateOpen', 'TimeOpen', 'OpenPrice', 'Quantity', 'CapitalOpen', 'Long/Short', 'DealType', 'CapitalClose',
-            'Singals', 'CounterSignals', 'DateClose', 'TimeClose', 'PriceClose', 'MaxPotentialPrice',
-            'MinPotentalPrice', 'RealProfit', 'deal profit', 'Potential Profit', 'Potential Loss', 'Realized gain',
-            'Realized loss', 'Ban Hammer', 'if Pogloshenije']
-    deals.append(deal)
-    dlina = len(all_export)
-    prosk = float(params['prosk'])
-    gap = int(params['gap'])
-    potential = 0
-    for i in range(1, dlina):
-        if potential:
-            potential = potential - 1
-        # --------------------------------------------------------------------------------------------------------------
-        # выход из лонга -----------------------------------------------------------------------------------------------
-        if all_export[i][25] == 'Exit long' or all_export[i][25] == 'Pogl long' \
-                or all_export[i][25] == 'Phantom long close' or all_export[i][26] == 'Phantom long close':
-            deal.append(all_export[i][32])  # капитал на конец             7
-            if all_export[i][25] == 'Exit long' or all_export[i][25] == 'Pogl long':
-                deal.append(all_export[i - 1][13])  # сигналы              8
-            else:
-                deal.append(all_export[i - 1][18])
-            if all_export[i][25] == 'Exit long' or all_export[i][25] == 'Pogl long':
-                deal.append(all_export[i - 1][14])  # контр сигналы        9
-            else:
-                deal.append(all_export[i - 1][19])
-            deal.append(all_export[i][0])  # дата выхода                   10
-            deal.append(all_export[i][1])  # время выхода                  11
-            if deal[6] == 'Long':
-                deal.append(all_export[i][7])  # цена выхода               12
-            else:
-                closeLongPrice = all_export[i][2] - prosk
-                if all_export[i][2] - all_export[i][5] > gap:
-                    closeLongPrice = all_export[i][5] - prosk
-                if closeLongPrice < all_export[i][4]:
-                    closeLongPrice = all_export[i][4]
-                deal.append(closeLongPrice)
-            deal.append(max_potential)   # максимальный потенциал в сделке 13
-            deal.append(min_potential)   # минимальный потенциал в сделке  14
-            if deal[6] == 'Long' or deal[6] == 'Long comeback':
-                deal.append(deal[7] / deal[4] - 1)  # Прибыль или убыток по сделке по капиталу 15
-            else:
-                deal.append(0)
-            deal.append((deal[12] - deal[2]) / deal[2])  # Прибыль или убыток по фантомам         16
-            if deal[2]:
-                deal.append((deal[13] - deal[2]) / deal[2])  # Потенциал в сделке  17
-            else:
-                deal.append(0)
-            if deal[2]:
-                deal.append((deal[14] - deal[2]) / deal[2])  # Угроза в сделке  18
-            if deal[16] >= 0 and deal[2] != deal[13]:
-                deal.append((deal[2] - deal[12]) / (deal[2] - deal[13]))  # Реализованный потенциал     19
-            else:
-                deal.append(0)
-            if deal[-1] > 1:
-                deal[-1] = 1
-            if deal[16] < 0 and deal[2] != deal[14]:  # Реализованная угроза                                 20
-                deal.append((deal[2] - deal[12]) / (deal[2] - deal[14]))
-            else:
-                deal.append(0)
-            if deal[-1] > 1:
-                deal[-1] = 1
-            deal.append(all_export[i][20])        # бх                                                 21
-            if all_export[i][25] == 'Pogl long':  # тип реальной или фантомной сделки  22
-                deal.append('Pogl long')
-            else:
-                deal.append('')
-            deals.append(deal)
-        # --------------------------------------------------------------------------------------------------------------
-        # выход из шорта -----------------------------------------------------------------------------------------------
-        if all_export[i][25] == 'Exit short' or all_export[i][25] == 'Pogl short' \
-                or all_export[i][25] == 'Phantom short close' or all_export[i][26] == 'Phantom short close':
-            deal.append(all_export[i][32])          # капитал на конец    7
-            if all_export[i][25] == 'Exit short' or all_export[i][25] == 'Pogl short':
-                deal.append(all_export[i - 1][14])  # сигналы             8
-            else:
-                deal.append(all_export[i - 1][19])  # сигналы
-            if all_export[i][25] == 'Exit short' or all_export[i][25] == 'Pogl short':
-                deal.append(all_export[i - 1][13])  # контр сигналы       9
-            else:
-                deal.append(all_export[i - 1][18])
-            deal.append(all_export[i][0])           # дата выхода         10
-            deal.append(all_export[i][1])           # время выхода        11
-            if deal[5] == 'Short':
-                deal.append(all_export[i][9])    # цена выхода            12
-            else:
-                closeShortPrice = all_export[i][5] + prosk
-                if all_export[i][5] - all_export[i][2] > gap:
-                    closeShortPrice = all_export[i][5] + prosk
-                if closeShortPrice > all_export[i][3]:
-                    closeShortPrice = all_export[i][3]
-                deal.append(closeShortPrice)
-            deal.append(min_potential)               # Максимальный потенциал в сделке шорт       13
-            deal.append(max_potential)               # минимальный потенциал в сделке шорт        14
-            if deal[6] == 'Short' or deal[6] == 'Short comeback':
-                deal.append((deal[7] / deal[4]) - 1)   # Прибыль или убыток по сделке по капиталу 15
-            else:
-                deal.append(0)
-            deal.append((deal[2] - deal[12]) / deal[2])  # Прибыль или убыток по фантомам         16
-            if deal[2]:
-                deal.append((deal[2] - deal[13]) / deal[2])    # Потенциал в сделке  17
-            else:
-                deal.append(0)
-            if deal[2] - deal[14] != 0:
-                deal.append((deal[2] - deal[14]) / deal[2])       # Угроза в сделке  18
-            if deal[16] >= 0 and deal[2] != deal[13]:
-                deal.append((deal[2] - deal[12]) / (deal[2] - deal[13]))      # Реализованный потенциал     19
-            else:
-                deal.append(0)
-            if deal[16] < 0 and deal[2] != deal[14]:  # Реализованная угроза                                 20
-                deal.append((deal[2] - deal[12]) / (deal[2] - deal[14]))
-            else:
-                deal.append(0)
-            deal.append(all_export[i][20])
-            if all_export[i][25] == 'Pogl short':  # тип реальной или фантомной сделки            21
-                deal.append('Pogl short')
-            else:
-                deal.append('')
-            deals.append(deal)
-        # --------------------------------------------------------------------------------------------------------------
-        # вход в лонг --------------------------------------------------------------------------------------------------
-        if all_export[i][25] == 'Long' or all_export[i][25] == 'Okno long' or all_export[i][25] == 'Phantom long enter'\
-                or all_export[i][25] == 'Zashita long' or all_export[i][26] == 'Okno long' \
-                or all_export[i][26] == 'Long' or all_export[i][26] == 'Phantom long enter' \
-                or all_export[i][25] == 'Razvorot from short':
-            deal = []
-            deal.append(all_export[i][0])     # дата начала     0
-            deal.append(all_export[i][1])     # время начала    1
-            if all_export[i][25] == 'Long' or all_export[i][25] == 'Razvorot from short' or all_export[i][26] == 'Long':
-                deal.append(all_export[i][6])     # цена сделки 2
-            else:
-                buyPrice = all_export[i][21] + prosk
-                if all_export[i][5] - all_export[i][2] > gap:
-                    buyPrice = all_export[i][5] + prosk
-                if buyPrice > all_export[i][3]:
-                    buyPrice = all_export[i][3]
-                if buyPrice < all_export[i][4]:
-                    buyPrice = all_export[i][4]
-                deal.append(buyPrice)
-            deal.append(all_export[i][34])    # количество в сделке   3
-            deal.append(all_export[i][32])    # капитал на начало     4
-            deal.append(1)                    # Признак лонг          5
-            if all_export[i][25] == 'Long' or all_export[i][26] == 'Long':
-                deal.append('Long')           # Тип сделки            6
-            if all_export[i][25] == 'Razvorot from short':
-                deal.append('Razvorot from short')
-            if all_export[i][25] == 'Okno long' or all_export[i][26] == 'Okno long':
-                deal.append('Okno long')
-            if all_export[i][25] == 'Phantom long enter' or all_export[i][26] == 'Phantom long enter':
-                deal.append('Phantom long enter')
-            if all_export[i][25] == 'Zashita long':
-                if deal[-1] == 'Okno long':
-                    deal[-1] = deal[-1] + ' Zashita long'
-                else:
-                    deal.append('Zashita long')
-            potential = 1
-            max_potential = 0
-            min_potential = 100000
-        # --------------------------------------------------------------------------------------------------------------
-        # вход в шорт --------------------------------------------------------------------------------------------------
-        if all_export[i][25] == 'Short' or all_export[i][25] == 'Okno short' or all_export[i][26] == 'Short'\
-                or all_export[i][25] == 'Razvorot from long' or all_export[i][26] == 'Okno short' \
-                or all_export[i][25] == 'Phantom short enter' or all_export[i][25] == 'Zashita short' \
-                or all_export[i][26] == 'Phantom short enter':
-            deal = []
-            deal.append(all_export[i][0])  # дата начала               0
-            deal.append(all_export[i][1])  # время начала              1
-            if all_export[i][25] == 'Short' or all_export[i][25] == 'Razvorot from long' \
-                    or all_export[i][26] == 'Short':
-                deal.append(all_export[i][8])  # цена сделки           2
-            else:
-                sellPrice = all_export[i][22] - prosk
-                if all_export[i][2] - all_export[i][5] > gap:
-                    sellPrice = all_export[i][5] - prosk
-                if sellPrice < all_export[i][4]:
-                    sellPrice = all_export[i][4]
-                if sellPrice > all_export[i][3]:
-                    sellPrice = all_export[i][3]
-                deal.append(sellPrice)      # цена сделки
-            deal.append(all_export[i][34])  # количество в сделке      3
-            deal.append(all_export[i][32])  # капитал на начало        4
-            deal.append(-1)                 # признак шорт             5
-            if all_export[i][25] == 'Short' or all_export[i][25] == 'Razvorot from long' \
-                    or all_export[i][26] == 'Short':
-                if all_export[i][20]:
-                    deal.append('Short comeback')  # тип сделки               6
-                else:
-                    deal.append('Short')        # тип сделки               6
-            if all_export[i][25] == 'Okno short' or all_export[i][26] == 'Okno short':
-                deal.append('Okno short')
-            if all_export[i][25] == 'Phantom short enter' or all_export[i][26] == 'Phantom short enter':
-                deal.append('Phantom short enter')
-            if all_export[i][25] == 'Zashita short':
-                if deal[-1] == 'Okno short':
-                    deal[-1] = 'Okno short & Zashita short'
-                else:
-                    deal.append('Zashita short')
-            potential = 1
-            max_potential = 0
-            min_potential = 1000000
-        if potential == 0 and len(deal) == 7:
-                if all_export[i][3] > max_potential:
-                    max_potential = all_export[i][3]
-                if all_export[i][4] < min_potential:
-                    min_potential = all_export[i][4]
-    return deals
-
-
-def signal_analytics(arg):
-    candles, chanel_long, chanel_short, signalgenerator = arg
-    signals = []
-    signal = ['date', 'time', 'direction', 'counter', 'in deal', 'extremum counter']
-    signals.append(signal)
-    i = 0
-    for candle in candles:
-        if i:
-            if candle.high >= chanel_long[i] > 0 and candle.low > chanel_short and candle.signal == 0:
-                signal = [candle.date, candle.time, 'long', signalgenerator[i][7] + 1, signalgenerator[i][4]]
-                signals.append(signal)
-            if candle.high < chanel_long[i] and candle.low <= chanel_short and candle.signal == 0:
-                signal = [candle.date, candle.time, 'short', signalgenerator[i][7] + 1, -signalgenerator[i][4]]
-                signals.append(signal)
-            if candle.high >= chanel_long[i] and candle.low <= chanel_short and candle.signal == 0:
-                signal = [candle.date, candle.time, 'twice signal', 0, signalgenerator[i][4]]
-                signals.append(signal)
-        i += 1
-    return signals
-
-
-def pipeline_chanel_long(arg):
-    candles, candles_1m, params, dimen0, dimen1, i, chanel_short, pogl_short, mm_long, mm_short, daily_export = arg
-    # Расчет параметров
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    chanel_long = kanaliMax(candles, parameters['chanelLong'])
-    pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                                     parameters['candlePoglLong'])
-    # Расчет цен сделок
-    arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters,
-                                                          arr_chanel_short=chanel_short, arr_pogl_short=pogl_short,
-                                                          arr_chanel_long=chanel_long, arr_pogl_long=pogl_long)
-    # Расчет капитала и аналитика
-    temp = chanelestimate(candles, parameters, arr_signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                            arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-        result.append(temp[j])
-    return result
-
-
-def pipeline_chanel_short(arg):
-    candles, candles_1m, params, dimen0, dimen1, i, chanel_long, pogl_long, mm_long, mm_short, daily_export = arg
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    # Расчет индикаторов
-    chanel_short = kanaliMin(candles, parameters["chanelShort"])
-    pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                       parameters['candlePoglShort'])
-    # Расчет цен сделок
-    arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters,
-                                                          arr_chanel_short=chanel_short, arr_pogl_short=pogl_short,
-                                                          arr_chanel_long=chanel_long, arr_pogl_long=pogl_long)
-    # Расчет капитала и аналитика
-    temp = chanelestimate(candles, parameters, arr_signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                   arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-        result.append(temp[j])
-    return result
-
-
-def pipeline_mm_long(arg):
-    candles, params, dimen0, dimen1, i, signal, mm_short, chanel_long, chanel_short, ws_criteria, ws_actions, \
-    daily_export = arg
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    # Расчет индикаторов
-    mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                          parameters['mmConstLong'])
-    # Расчет капитала и аналитики
-    temp = chanelestimate(candles, parameters, signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                          arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-       result.append(temp[j])
-    return result
-
-
-def pipeline_mm_short(arg):
-    candles, params, dimen0, dimen1, i, signal, mm_long, chanel_long, chanel_short, ws_criteria, ws_actions, \
-    daily_export = arg
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    # Расчет индикаторов
-    mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'], parameters['mmAverageShort'],
-                           parameters['mmConstShort'])
-    # Расчет капитала и аналитики
-    temp = chanelestimate(candles, parameters, signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                            arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-        result.append(temp[j])
-    return result
-
-
-def pipeline_pogl_long(arg):
-    candles, candles_1m, params, dimen0, dimen1, i, chanel_long, chanel_short, pogl_short, mm_long, mm_short, \
-    daily_export = arg
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    # Расчет индикаторов
-    pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                                     parameters['candlePoglLong'])
-    # Расчет цен сделок
-    arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters, arr_chanel_long=chanel_long,
-                                                          arr_chanel_short=chanel_short, arr_pogl_long=pogl_long,
-                                                          arr_pogl_short=pogl_short)
-    # Расчет капитала и аналитика
-    temp = chanelestimate(candles, parameters, arr_signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                          arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-        result.append(temp[j])
-    return result
-
-
-def pipeline_pogl_short(arg):
-    candles, candles_1m, params, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long, mm_long, mm_short, \
-    daily_export = arg
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    # Расчет индикаторов
-    pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                       parameters['candlePoglShort'])
-    # Расчет цен сделок
-    arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters, arr_chanel_long=chanel_long,
-                                                          arr_chanel_short=chanel_short, arr_pogl_long=pogl_long,
-                                                          arr_pogl_short=pogl_short)
-    # Расчет капитала и аналитика
-    temp = chanelestimate(candles, parameters, arr_signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                          arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-        result.append(temp[j])
-    return result
-
-
 def pipeline_other(arg):
     candles, candles_1m, params, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long, pogl_short, mm_long, \
     mm_short, daily_export = arg
@@ -1464,24 +1100,6 @@ def pipeline_other(arg):
     return result
 
 
-def pipeline_leverage(arg):
-    candles, params, dimen0, dimen1, i, signal, chanel_long, chanel_short, ws_criteria, ws_actions, daily_export = arg
-    parameters, result = chanelloader(params, dimen0, dimen1, i)
-    # Расчет индикаторов
-    mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                      parameters['mmConstLong'])
-    mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'], parameters['mmAverageShort'],
-                       parameters['mmConstShort'])
-    # Расчет капитала и аналитики
-    temp = chanelestimate(candles, parameters, signal, arr_mm_long=mm_long, arr_mm_short=mm_short,
-                          arr_chanel_long=chanel_long, arr_chanel_short=chanel_short, daily_export=daily_export)
-    temp.extend(ws_criteria)
-    temp.append(ws_actions)
-    for j in range(0, len(temp)):
-       result.append(temp[j])
-    return result
-
-
 def quarter_test(instrument, test_name, daily_export=False):
     print("start")
     data_file_name = instrument + 'Candles.csv'
@@ -1491,15 +1109,7 @@ def quarter_test(instrument, test_name, daily_export=False):
     file = DataLoader.File(parameters_file_name)
     parametersWithRange, est_variables = file.getdataparams() # базовые перменные и столбцы с естами
     startTime = time()
-    if 'm1_enter_condition' in parametersWithRange:
-        m1_file_name = instrument + '_1m.csv'
-        if int(parametersWithRange['m1_enter_condition'][0]) == 1:
-            file = DataLoader.File(m1_file_name)
-            candles_1m = file.getDataCandle_1m()
-        else:
-            candles_1m = []
-    else:
-        candles_1m = []
+    candles_1m = []
 
     # Количество табличных тестов --------------------------------------------------------------------------------------
     chislo = (len(est_variables["chanelLong"]))
@@ -1571,158 +1181,24 @@ def quarter_test(instrument, test_name, daily_export=False):
         # --------------------------------------------------------------------------------------------------------------
         # Расчет таблиц для квартального теста- ------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
-        other = True
-        if parametersWithRange['chanelLong'][0] == "Est" or parametersWithRange['exitLong'][0] == "Est":
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'],
-                                           parameters['sCanalShort'], parameters['candlePoglShort'])
-            mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                              parameters['mmConstLong'])
-            mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                               parameters['mmAverageShort'], parameters['mmConstShort'])
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_short, pogl_short, mm_long,
-                      mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_chanel_long, itera)
-        if parametersWithRange['chanelShort'][0] == "Est" or parametersWithRange['exitShort'][0] == "Est":
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                         parameters['candlePoglLong'])
-            mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                              parameters['mmConstLong'])
-            mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                               parameters['mmAverageShort'], parameters['mmConstShort'])
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_long, pogl_long, mm_long,
-                      mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_chanel_short, itera)
-        if parametersWithRange['mmSpeedLong'][0] == "Est" or parametersWithRange['mmAverageLong'][0] == "Est" \
-                or parametersWithRange['mmConstLong'][0] == "Est":
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                         parameters['candlePoglLong'])
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                           parameters['candlePoglShort'])
-            mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                               parameters['mmAverageShort'], parameters['mmConstShort'])
-            arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters,
-                                                                  arr_chanel_long=chanel_long,
-                                                                  arr_chanel_short=chanel_short,
-                                                                  arr_pogl_long=pogl_long, arr_pogl_short=pogl_short)
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, parametersWithRange, dimen0, dimen1, i, arr_signal, mm_short, chanel_long, chanel_short,
-                      ws_criteria, ws_actions, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_mm_long, itera)
-        if parametersWithRange['mmSpeedShort'][0] == "Est" or parametersWithRange['mmAverageShort'][0] == "Est" \
-                or parametersWithRange['mmConstShort'][0] == "Est":
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                         parameters['candlePoglLong'])
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                           parameters['candlePoglShort'])
-            mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                              parameters['mmConstLong'])
-            arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters,
-                                                                  arr_chanel_long=chanel_long,
-                                                                  arr_chanel_short=chanel_short,
-                                                                  arr_pogl_long=pogl_long, arr_pogl_short=pogl_short)
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, parametersWithRange, dimen0, dimen1, i, arr_signal, mm_long, chanel_long, chanel_short,
-                      ws_criteria, ws_actions, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_mm_short, itera)
-        if parametersWithRange['leverage'][0] == "Est":
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                         parameters['candlePoglLong'])
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'],
-                                           parameters['sCanalShort'], parameters['candlePoglShort'])
-            arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters,
-                                                                  arr_chanel_long=chanel_long,
-                                                                  arr_chanel_short=chanel_short,
-                                                                  arr_pogl_long=pogl_long, arr_pogl_short=pogl_short)
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, parametersWithRange, dimen0, dimen1, i, arr_signal, chanel_long, chanel_short,
-                      ws_criteria, ws_actions, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_leverage, itera)
-        if parametersWithRange['bCanalLong'][0] == "Est" or parametersWithRange['sCanalLong'][0] == "Est" or \
-                parametersWithRange['candlePoglLong'][0] == "Est":
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                           parameters['candlePoglShort'])
-            mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                              parameters['mmConstLong'])
-            mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                               parameters['mmAverageShort'], parameters['mmConstShort'])
-            # pogl_long = None
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short,
-                      pogl_short, mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_pogl_long, itera)
-        if parametersWithRange['bCanalShort'][0] == "Est" or parametersWithRange['sCanalShort'][0] == "Est" or \
-                parametersWithRange['candlePoglShort'][0] == "Est":
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                         parameters['candlePoglLong'])
-            mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                              parameters['mmConstLong'])
-            mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                               parameters['mmAverageShort'], parameters['mmConstShort'])
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
-                      mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            other = False
-            with Pool() as p:
-                result_list = p.map(pipeline_pogl_short, itera)
-        if other:
-            parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
-            # Расчет индикаторов ---------------------------------------------------------------------------------------
-            chanel_long = kanaliMax(candles, parameters['chanelLong'])
-            chanel_short = kanaliMin(candles, parameters['chanelShort'])
-            pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                           parameters['candlePoglShort'])
-            pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                         parameters['candlePoglLong'])
-            mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                              parameters['mmConstLong'])
-            mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                               parameters['mmAverageShort'], parameters['mmConstShort'])
-            # Создание переменной для мультипроцессинга----------------------------------------------------------------
-            itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
-                      pogl_short, mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
-            with Pool() as p:
-                result_list = p.map(pipeline_other, itera)
-        # --------------------------------------------------------------------------------------------------------------
+        parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
+        # Расчет индикаторов ---------------------------------------------------------------------------------------
+        chanel_long = kanaliMax(candles, parameters['chanelLong'])
+        chanel_short = kanaliMin(candles, parameters['chanelShort'])
+        pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
+                                       parameters['candlePoglShort'])
+        pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
+                                     parameters['candlePoglLong'])
+        mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
+                          parameters['mmConstLong'])
+        mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
+                           parameters['mmAverageShort'], parameters['mmConstShort'])
+        # Создание переменной для мультипроцессинга----------------------------------------------------------------
+        itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
+                  pogl_short, mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
+        with Pool() as p:
+            result_list = p.map(pipeline_other, itera)
+    # --------------------------------------------------------------------------------------------------------------
         # Поиск оптимального значения в таблице ------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
         # for wr in range(0, len(result_list)):
@@ -1846,35 +1322,3 @@ def quarter_test(instrument, test_name, daily_export=False):
         print(k, fin_variables[k][-1])
     print('finish')
     return result_list[optim][11]
-
-# 1.0
-
-def regression(capital):
-    n = len(capital)
-    x_arr = np.arange(n)
-    x1_arr = [x + 1 for x in x_arr]
-    x2_arr = [1] * n
-    y_arr = np.array([math.log(x) for x in capital])
-    x_transp = [x1_arr, x2_arr]
-    x_arr = np.transpose(x_transp)
-    temp1 = np.linalg.inv(x_transp @ x_arr)  # первый множитель для коэффициента
-    temp2 = x_transp @ y_arr                 # второй множитель для коэффициента
-    a, b = temp1 @ temp2
-    for_residuals = np.transpose(y_arr) - x_arr @ [a, b]
-    for_residuals_transp = np.transpose(for_residuals)
-    residuals = for_residuals_transp @ for_residuals
-    residuals_before = np.transpose(y_arr) @ y_arr
-    r2 = 1 - residuals / residuals_before
-    return a, b, r2, residuals / n
-
-
-# 1.1 Добавил расчет времени на 1 тест
-# 1.2 Добавил экспорт листа
-# 1.3 Убрал срабатывание сокращения позиции на свече открытия
-# 1.4 Добавил окна, перенес все параметры и кривые в csv Parameters
-# 1.6 Добавил брексит и расчет по плечу
-# 1.7 добавил слабые сигнал
-# 1.7 Добавил развороты из окон и поглощений
-# 1.7 Добавил счетчик по слабым сигналам
-# 1.8 Добавил возвращения в тренд, поправил макрос по анализу сделок
-# 1.9 Добавил стоп-лоссы
