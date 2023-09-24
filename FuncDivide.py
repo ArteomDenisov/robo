@@ -1,8 +1,8 @@
 from time import time
 from multiprocessing import Pool
-import DataLoader
 import copy
-from strategy import kanaliMax, kanaliMin, pogloshenie_short, pogloshenie_long, mmCLose
+from .strategy import kanaliMax, kanaliMin, pogloshenie_short, pogloshenie_long, mmCLose
+from .DataLoader import File
 
 
 def chanelloader(params, dimen0, dimen1, i):
@@ -460,7 +460,7 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
         # ------------------------------------------------------------------------------------------------------
         # Расчет открытия лонг
         # ------------------------------------------------------------------------------------------------------
-        if candle.high >= maxC > 0 and candle.low > minC and hammer == 0 and candle.signal == 0 and \
+        if candle.high >= maxC > 0 and candle.low > minC and hammer == 0 and \
                 longCondition is False and shortCondition is False and closeShortPrice == 0 and closeShortPrice == 0 \
                 and deal_type1 != 'Exit long' and deal_type1 != 'Exit short' and deal_type1 != 'Pogl long' and \
                 deal_type1 != 'Pogl short':
@@ -498,7 +498,7 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
         # ---------------------------------------------------------------------------------------------------------
         # Расчет открытия шорт
         # ---------------------------------------------------------------------------------------------------------
-        if candle.low <= minC < 1000000 and candle.high < maxC and hammer == 0 and candle.signal == 0 \
+        if candle.low <= minC < 1000000 and candle.high < maxC and hammer == 0 \
                 and longCondition is False and shortCondition is False and closeShortPrice == 0 and closeLongPrice == 0 \
                 and deal_type1 != 'Exit long' and deal_type1 != 'Exit short' and deal_type1 != 'Pogl long' and \
                 deal_type1 != 'Pogl short':
@@ -581,14 +581,14 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
         # ---------------------------------------------------------------------------------------------------------------------------------------------------
         if fantomDeals and hammer > 0 and quant == 0:
             # открытие лонг
-            if candle.high >= maxC and candle.low > minC and fQuant == 0 and candle.signal == 0:
+            if candle.high >= maxC and candle.low > minC and fQuant == 0:
                 fQuant = 1
                 # открытие шорт
                 if deal_type1 == '':
                     deal_type1 = 'Phantom long enter'
                 else:
                     deal_type2 = 'Phantom long enter'
-            if candle.low <= minC and candle.high < maxC and fQuant == 0 and candle.signal == 0:
+            if candle.low <= minC and candle.high < maxC and fQuant == 0:
                 fQuant = -1
                 if deal_type1 == '':
                     deal_type1 = 'Phantom short enter'
@@ -596,11 +596,11 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                     deal_type2 = 'Phantom short enter'
         if fantomDeals and quant == 0 and fQuant != 0:
             # счётчики
-            if candle.high >= maxC and candle.low > minC and candle.signal == 0:
+            if candle.high >= maxC and candle.low > minC:
                 fSignalLong = fSignalLong + 1
                 if fQuant == 1:
                     fCounterLong = 1
-            if candle.low <= minC and candle.high < maxC and candle.signal == 0:
+            if candle.low <= minC and candle.high < maxC:
                 fSignalShort = fSignalShort + 1
                 if fQuant == -1:
                     fCounterShort = 1
@@ -613,7 +613,7 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
         # --------------------------------------------------------------------------------------------------------------
         if longCondition:
             # срабатывание счетчиков
-            if candle.high >= maxC and candle.low > minC and candle.signal == 0:
+            if candle.high >= maxC and candle.low > minC:
                 signalLongP = signalLongP + 1
                 counterLong = 0
                 signalLong = signalLong + 1
@@ -621,7 +621,7 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                     pogl_long = arr_pogl_long[i]
                 if pogloshenieLong and signalLongP < signalPoglLong:
                     pogloshenije = False
-            if candle.low <= minC and candle.high < maxC and candle.signal == 0:
+            if candle.low <= minC and candle.high < maxC:
                 signalShort = signalShort + 1
             if candle.close <= candle.open:
                 counterLong = counterLong + 1
@@ -630,7 +630,7 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
             # Блок для слабых сигналов - действия ----------------------------------------------------------------------
         if shortCondition:
             # срабатывание счетчиков
-            if candle.low <= minC and candle.high < maxC and candle.signal == 0:
+            if candle.low <= minC and candle.high < maxC:
                 signalShortP = signalShortP + 1
                 counterShort = 0
                 signalShort = signalShort + 1
@@ -638,13 +638,13 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                     pogl_short = arr_pogl_short[i]
                 if pogloshenieShort and signalShortP < signalPoglShort:   # в любом случае включение поглощений
                     pogloshenije = False
-            if candle.high >= maxC and candle.signal == 0:
+            if candle.high >= maxC:
                 signalLong = signalLong + 1
             if candle.close >= candle.open:
                 counterShort = counterShort + 1
             if pogloshenieShort and signalShortP >= signalPoglShort:
                 pogloshenije = True
-        if candle.high >= maxC and candle.low > minC and candle.signal == 0:
+        if candle.high >= maxC and candle.low > minC:
             dopL_counter += 1
             dopS_counter = 0
         if candle.high < maxC and candle.low <= minC:
@@ -939,10 +939,10 @@ def pipeline_other(arg):
 def quarter_test(instrument, test_name, daily_export=False):
     print("start")
     data_file_name = instrument + 'Candles.csv'
-    file = DataLoader.File(data_file_name)
+    file = File(data_file_name)
     candles = file.get_candle_data()
     parameters_file_name = 'Parameters ' + instrument + ' ' + test_name + '.csv'
-    file = DataLoader.File(parameters_file_name)
+    file = File(parameters_file_name)
     parametersWithRange, est_variables = file.get_data_parameters()  # базовые перменные и столбцы с естами
     startTime = time()
     candles_1m = []
