@@ -936,10 +936,9 @@ def pipeline_other(arg):
     return result
 
 
-def quarter_test(instrument, test_name, daily_export=False):
+def quarter_test(instrument, test_name, candles_filename, daily_export=False):
     print("start")
-    data_file_name = instrument + 'Candles.csv'
-    file = File(data_file_name)
+    file = File(candles_filename)
     candles = file.get_candle_data()
     parameters_file_name = 'Parameters ' + instrument + ' ' + test_name + '.csv'
     file = File(parameters_file_name)
@@ -1082,10 +1081,10 @@ def quarter_test(instrument, test_name, daily_export=False):
                 est_variables['c_sl_long'][j] = result_list[optim][27]
                 est_variables['c_sl_short'][j] = result_list[optim][28]
                 est_variables['c_prodl_long'][j] = result_list[optim][29]
-                est_variables['c_prodl_short'][j] = result_list[optim][30]
-                est_variables['c_okno_long'][j] = result_list[optim][31]
-                est_variables['c_okno_short'][j] = result_list[optim][32]
-                est_variables['ws_actions'][j] = result_list[optim][33]
+                # est_variables['c_prodl_short'][j] = result_list[optim][30]
+                # est_variables['c_okno_long'][j] = result_list[optim][31]
+                # est_variables['c_okno_short'][j] = result_list[optim][32]
+                # est_variables['ws_actions'][j] = result_list[optim][33]
         for k in k1:
             fin_variables[k][j] = parametersWithRange[k][0]
         fin_variables['Return'][j] = result_list[optim][7]
@@ -1111,10 +1110,10 @@ def quarter_test(instrument, test_name, daily_export=False):
         fin_variables['c_sl_long'][j] = result_list[optim][27]
         fin_variables['c_sl_short'][j] = result_list[optim][28]
         fin_variables['c_prodl_long'][j] = result_list[optim][29]
-        fin_variables['c_prodl_short'][j] = result_list[optim][30]
-        fin_variables['c_okno_long'][j] = result_list[optim][31]
-        fin_variables['c_okno_short'][j] = result_list[optim][32]
-        fin_variables['ws_actions'][j] = result_list[optim][33]
+        # fin_variables['c_prodl_short'][j] = result_list[optim][30]
+        # fin_variables['c_okno_long'][j] = result_list[optim][31]
+        # fin_variables['c_okno_short'][j] = result_list[optim][32]
+        # fin_variables['ws_actions'][j] = result_list[optim][33]
         # Добавление результатов в итоговый массив
         for z in range(0, len(result_list)):
             result.append(result_list[z])
@@ -1130,29 +1129,27 @@ def quarter_test(instrument, test_name, daily_export=False):
     result_file_name = 'Results ' + instrument + ' ' + test_name + '.csv'
     if test_counter:
         print((endtime - startTime) / test_counter)
-    f = open(result_file_name, "w+")
-    for i in range(0, len(result)):
-        for j in range(0, len(result[i])):
-            result[i][j] = str(result[i][j])
-        towrite = ";".join(result[i]) + '\n'
-        f.write(towrite)
-    f.close()
+    with open(result_file_name, "w+") as f:
+        for i in range(0, len(result)):
+            for j in range(0, len(result[i])):
+                result[i][j] = str(result[i][j])
+            towrite = ";".join(result[i]) + '\n'
+            f.write(towrite)
     # ------------------------------------------------------------------------------------------------------------------
     # Экспорт листа мета контрол----------------------------------------------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     meta_control_name = 'MetaControl ' + instrument + ' ' + test_name + '.csv'
-    f = open(meta_control_name, "w+")
-    for k in k1:
-        for j in range(0, len(est_variables[k])):
-            est_variables[k][j] = str(est_variables[k][j])
-        for j in range(0, len(fin_variables[k])):
-            fin_variables[k][j] = str(fin_variables[k][j])
-        temp = ";".join(est_variables[k])
-        towrite = k + ';' + str(start_variable[k]) + ';' + str(parametersWithRange[k][1]) + ';' + \
-                  str(parametersWithRange[k][2]) + ';' + str(parametersWithRange[k][3]) + ';' + \
-                  ";".join(est_variables[k]) + ";" + ";".join(fin_variables[k]) + '\n'
-        f.write(towrite)
-    f.close()
+    with open(meta_control_name, "w+") as f:
+        for k in k1:
+            for j in range(0, len(est_variables[k])):
+                est_variables[k][j] = str(est_variables[k][j])
+            for j in range(0, len(fin_variables[k])):
+                fin_variables[k][j] = str(fin_variables[k][j])
+            temp = ";".join(est_variables[k])
+            towrite = k + ';' + str(start_variable[k]) + ';' + str(parametersWithRange[k][1]) + ';' + \
+                      str(parametersWithRange[k][2]) + ';' + str(parametersWithRange[k][3]) + ';' + \
+                      ";".join(est_variables[k]) + ";" + ";".join(fin_variables[k]) + '\n'
+            f.write(towrite)
     print('----------------------------------------------------------------------------------------------------------')
     for k in ['Return', 'maxDrawDown', 'monthlyDD1', 'curve1', 'profit_deals', 'loss_deals']:
         print(k, fin_variables[k][-1])
