@@ -1,6 +1,9 @@
 from time import time
 from multiprocessing import Pool
 import copy
+
+from numba import jit
+
 from .strategy import kanaliMax, kanaliMin, pogloshenie_short, pogloshenie_long, mmCLose
 from .DataLoader import File
 
@@ -40,7 +43,7 @@ def chanelloader(params, dimen0, dimen1, i):
     return parameter, coordinates
 
 
-def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chanel_short=None, arr_pogl_long=None,
+def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None, arr_pogl_long=None,
                     arr_pogl_short=None, all_export=False):
     # -----------------------------------------------------------------------------------------------------------------
     # Логические Переменные--------------------------------------------------------------------------------------------
@@ -48,8 +51,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
     fantomDeals = int(params['fantomDeals'])
     pogloshenieLong = int(params['pogloshenieLong'])
     pogloshenieShort = int(params['pogloshenieShort'])
-    oknoLong = int(params['oknoLong'])
-    oknoShort = int(params['oknoShort'])
     if 'stop_loss_close_long' in params:
         stop_loss_close_long = int(params['stop_loss_close_long'])
     else:
@@ -121,18 +122,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
     quatroShort = int(params['quatroShort'])
     signalPoglLong = int(params['signalPoglLong'])
     signalPoglShort = int(params['signalPoglShort'])
-    okno_x_long = float(params['okno_x_long'])
-    okno_y_long = float(params['okno_y_long'])
-    okno_x_short = float(params['okno_x_short'])
-    okno_y_short = float(params['okno_y_short'])
-    if 'm1_delay' in params:
-        m1_delay = int(params['m1_delay'])
-    else:
-        m1_delay = 0
-    if 'm1_duration' in params:
-        m1_duration = int(params['m1_duration'])
-    else:
-        m1_duration = 1
     if 'stop_loss_percent_long' in params:
         stop_loss_percent_long = float(params['stop_loss_percent_long'])
     else:
@@ -191,8 +180,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
     c_sl_short = 0
     c_prodl_long = 0
     c_prodl_short = 0
-    c_okno_long = 0
-    c_okno_short = 0
     i = 0
     arr = []
     longCondition = False          # состояние, что расчитываются счетчики для лонг
@@ -363,15 +350,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                 closeShortPrice = candle.close + prosk
             if closeShortPrice > candle.high:
                 closeShortPrice = candle.high
-            if m1_exit_short == 1:
-                closeShortPrice = 0
-                if m1_delay + m1_duration > 30:
-                    m1_delitel = 30 - m1_delay
-                else:
-                    m1_delitel = m1_duration
-                for m1 in range(m1_delay + 2, m1_delay + m1_delitel + 2):
-                    closeShortPrice = closeShortPrice + candles_1m[i][m1]
-                closeShortPrice = closeShortPrice / m1_delitel
             if quant == 0:
                 closeShortPrice = 0
             quant = 0
@@ -415,15 +393,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                 closeLongPrice = candle.close - prosk
             if closeLongPrice < candle.low:
                 closeLongPrice = candle.low
-            if m1_exit_long == 1:
-                closeLongPrice = 0
-                if m1_delay + m1_duration > 30:
-                    m1_delitel = 30 - m1_delay
-                else:
-                    m1_delitel = m1_duration
-                for m1 in range(m1_delay + 2, m1_delay + m1_delitel + 2):
-                    closeLongPrice = closeLongPrice + candles_1m[i][m1]
-                closeLongPrice = closeLongPrice / m1_delitel
             if quant == 0:
                 closeLongPrice = 0
             quant = 0
@@ -469,13 +438,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
             comeback = True
             c_long_deals += 1
             deal_type1 = 'Long'
-            if oknoLong and okno_x_long < maxC - candles[i - 1].close < okno_y_long:
-                simple_long_enter = False
-                c_okno_long += 1
-                if deal_type1 == 'Zashita long':
-                    deal_type2 = 'Okno long'
-                else:
-                    deal_type1 = 'Okno long'
             # Закрытие фантомных сделок
             if fQuant == 1:
                 fQuant = 0
@@ -506,14 +468,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
             shortCondition = True
             deal_type1 = 'Short'
             c_short_deals += 1
-            # Окно -----------------------------------------------------------------------------------------------------
-            if oknoShort and okno_x_short < candles[i - 1].close - minC < okno_y_short:
-                simple_short_enter = False
-                c_okno_short += 1
-                if deal_type1 == 'Zashita short':
-                    deal_type2 = 'Okno short'
-                else:
-                    deal_type1 = 'Okno short'
             # Закрытие фантомных сделок при начале реальной сделки -----------------------------------------------------
             if fQuant == 1:
                 fQuant = 0
@@ -544,15 +498,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                 sellPrice = candle.low
             if sellPrice > candle.high:
                 sellPrice = candle.high
-            if m1_enter_short == 1:
-                sellPrice = 0
-                if m1_delay + m1_duration > 30:
-                    m1_delitel = 30 - m1_delay
-                else:
-                    m1_delitel = m1_duration
-                for m1 in range(m1_delay + 2, m1_delay + m1_delitel + 2):
-                    sellPrice = sellPrice + candles_1m[i][m1]
-                sellPrice = sellPrice / m1_delitel
             simple_short_enter = False
             razvorot_from_long = False
         if simple_long_enter or razvorot_from_short:
@@ -565,15 +510,6 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
                 buyPrice = candle.high
             if buyPrice < candle.low:
                 buyPrice = candle.low
-            if m1_enter_long == 1:
-                buyPrice = 0
-                if m1_delay + m1_duration > 30:
-                    m1_delitel = 30 - m1_delay
-                else:
-                    m1_delitel = m1_duration
-                for m1 in range(m1_delay + 2, m1_delay + m1_delitel + 2):
-                    buyPrice = buyPrice + candles_1m[i][m1]
-                buyPrice = buyPrice / m1_delitel
             simple_long_enter = False
             razvorot_from_short = False
         # ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -653,7 +589,7 @@ def signalgenerator(candles, candles_1m, params, arr_chanel_long=None, arr_chane
         # Запись в файл ------------------------------------------------------------------------------------------------
         massif = [buyPrice, closeLongPrice, sellPrice, closeShortPrice]
         ws_criteria = [c_long_deals, c_short_deals, c_bhl, c_bhs, c_kbhl, c_kbhs, c_pogl_long, c_pogl_short, c_sl_long,
-                       c_sl_short, c_prodl_long, c_prodl_short, c_okno_long, c_okno_short]
+                       c_sl_short, c_prodl_long, c_prodl_short]
 
         if all_export:
             massif = [buyPrice, closeLongPrice, sellPrice, closeShortPrice, quant, counterLong, counterShort,
@@ -909,7 +845,7 @@ def chanelestimate(candles, params, arr_signal, arr_mm_long=None, arr_mm_short=N
         ddForCurve_new = -1000
     curve = rate - curve21 * pow(ddForCurve, 2) - curve22 * ddForCurve - curve23
     curve_new = rate - curve11 * pow(ddForCurve_new, 2) - curve12 * ddForCurve_new - curve13
-    a = [currentCapital, rate, maxDrawDown, ddmetric1 / dohod, ddmetric2 / dohod, curve,
+    a = [capit, rate, maxDrawDown, ddmetric1 / dohod, ddmetric2 / dohod, curve,
          profit_deals_metric / sum_dd_old, loss_deals_metric / sum_dd_old, curve_new]
     if daily_export:
         a.extend(array_days)
@@ -920,10 +856,10 @@ def chanelestimate(candles, params, arr_signal, arr_mm_long=None, arr_mm_short=N
 
 
 def pipeline_other(arg):
-    candles, candles_1m, params, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long, pogl_short, mm_long, \
+    candles, params, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long, pogl_short, mm_long, \
     mm_short, daily_export = arg
     parameters, result = chanelloader(params, dimen0, dimen1, i)
-    arr_signal, ws_criteria, ws_actions = signalgenerator(candles, candles_1m, parameters, arr_chanel_long=chanel_long,
+    arr_signal, ws_criteria, ws_actions = signalgenerator(candles, parameters, arr_chanel_long=chanel_long,
                                                           arr_chanel_short=chanel_short, arr_pogl_long=pogl_long,
                                                           arr_pogl_short=pogl_short)
     # Расчет капитала и аналитика
@@ -944,7 +880,6 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
     file = File(parameters_file_name)
     parametersWithRange, est_variables = file.get_data_parameters()  # базовые перменные и столбцы с естами
     startTime = time()
-    candles_1m = []
 
     # Количество табличных тестов --------------------------------------------------------------------------------------
     chislo = (len(est_variables["chanelLong"]))
@@ -1029,17 +964,15 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
         mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
                            parameters['mmAverageShort'], parameters['mmConstShort'])
         # Создание переменной для мультипроцессинга----------------------------------------------------------------
-        itera = ([candles, candles_1m, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
+        itera = ([candles, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
                   pogl_short, mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
         with Pool() as p:
             result_list = p.map(pipeline_other, itera)
     # --------------------------------------------------------------------------------------------------------------
         # Поиск оптимального значения в таблице ------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
-        # for wr in range(0, len(result_list)):
-        #    print(result_list[wr])
         esttime = time() - startTime
-        # print(esttime - loadtime)
+        print(esttime)
         poisktochki = result_list[0][11]
         optim = 0
         for i in range(0, len(result_list)):
@@ -1072,19 +1005,15 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
                 est_variables['residials2_regression'][j] = result_list[optim][18]
                 est_variables['c_long_deals'][j] = result_list[optim][19]
                 est_variables['c_short_deals'][j] = result_list[optim][20]
-                est_variables['c_bhl'][j] = result_list[optim][21]
-                est_variables['c_bhs'][j] = result_list[optim][22]
-                est_variables['c_kbhl'][j] = result_list[optim][23]
-                est_variables['c_kbhs'][j] = result_list[optim][24]
-                est_variables['c_pogl_long'][j] = result_list[optim][25]
-                est_variables['c_pogl_short'][j] = result_list[optim][26]
-                est_variables['c_sl_long'][j] = result_list[optim][27]
-                est_variables['c_sl_short'][j] = result_list[optim][28]
-                est_variables['c_prodl_long'][j] = result_list[optim][29]
-                # est_variables['c_prodl_short'][j] = result_list[optim][30]
-                # est_variables['c_okno_long'][j] = result_list[optim][31]
-                # est_variables['c_okno_short'][j] = result_list[optim][32]
-                # est_variables['ws_actions'][j] = result_list[optim][33]
+                # est_variables['c_bhl'][j] = result_list[optim][21]
+                # est_variables['c_bhs'][j] = result_list[optim][22]
+                # est_variables['c_kbhl'][j] = result_list[optim][23]
+                # est_variables['c_kbhs'][j] = result_list[optim][24]
+                # est_variables['c_pogl_long'][j] = result_list[optim][25]
+                # est_variables['c_pogl_short'][j] = result_list[optim][26]
+                # est_variables['c_sl_long'][j] = result_list[optim][27]
+                # est_variables['c_sl_short'][j] = result_list[optim][28]
+                # est_variables['c_prodl_long'][j] = result_list[optim][29]
         for k in k1:
             fin_variables[k][j] = parametersWithRange[k][0]
         fin_variables['Return'][j] = result_list[optim][7]
@@ -1101,19 +1030,15 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
         fin_variables['residials2_regression'][j] = result_list[optim][18]
         fin_variables['c_long_deals'][j] = result_list[optim][19]
         fin_variables['c_short_deals'][j] = result_list[optim][20]
-        fin_variables['c_bhl'][j] = result_list[optim][21]
-        fin_variables['c_bhs'][j] = result_list[optim][22]
-        fin_variables['c_kbhl'][j] = result_list[optim][23]
-        fin_variables['c_kbhs'][j] = result_list[optim][24]
-        fin_variables['c_pogl_long'][j] = result_list[optim][25]
-        fin_variables['c_pogl_short'][j] = result_list[optim][26]
-        fin_variables['c_sl_long'][j] = result_list[optim][27]
-        fin_variables['c_sl_short'][j] = result_list[optim][28]
-        fin_variables['c_prodl_long'][j] = result_list[optim][29]
-        # fin_variables['c_prodl_short'][j] = result_list[optim][30]
-        # fin_variables['c_okno_long'][j] = result_list[optim][31]
-        # fin_variables['c_okno_short'][j] = result_list[optim][32]
-        # fin_variables['ws_actions'][j] = result_list[optim][33]
+        # fin_variables['c_bhl'][j] = result_list[optim][21]
+        # fin_variables['c_bhs'][j] = result_list[optim][22]
+        # fin_variables['c_kbhl'][j] = result_list[optim][23]
+        # fin_variables['c_kbhs'][j] = result_list[optim][24]
+        # fin_variables['c_pogl_long'][j] = result_list[optim][25]
+        # fin_variables['c_pogl_short'][j] = result_list[optim][26]
+        # fin_variables['c_sl_long'][j] = result_list[optim][27]
+        # fin_variables['c_sl_short'][j] = result_list[optim][28]
+        # fin_variables['c_prodl_long'][j] = result_list[optim][29]
         # Добавление результатов в итоговый массив
         for z in range(0, len(result_list)):
             result.append(result_list[z])
