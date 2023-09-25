@@ -1,3 +1,6 @@
+from numba import jit
+
+
 def pusharray(array, a):
     array.append(a)
     array.pop(0)
