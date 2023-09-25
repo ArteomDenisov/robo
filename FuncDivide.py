@@ -953,16 +953,12 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
         # --------------------------------------------------------------------------------------------------------------
         parameters, zdes_ne_nuzhno = chanelloader(parametersWithRange, dimen0, dimen1, i)
         # Расчет индикаторов ---------------------------------------------------------------------------------------
-        chanel_long = kanaliMax(candles, parameters['chanelLong'])
-        chanel_short = kanaliMin(candles, parameters['chanelShort'])
-        pogl_short = pogloshenie_short(candles, chanel_short, parameters['bCanalShort'], parameters['sCanalShort'],
-                                       parameters['candlePoglShort'])
-        pogl_long = pogloshenie_long(candles, chanel_long, parameters['bCanalLong'], parameters['sCanalLong'],
-                                     parameters['candlePoglLong'])
-        mm_long = mmCLose(candles, parameters['leverage'], parameters['mmSpeedLong'], parameters['mmAverageLong'],
-                          parameters['mmConstLong'])
-        mm_short = mmCLose(candles, parameters['leverage'], parameters['mmSpeedShort'],
-                           parameters['mmAverageShort'], parameters['mmConstShort'])
+        chanel_long = None
+        chanel_short = None
+        pogl_short = None
+        pogl_long = None
+        mm_long = None
+        mm_short = None
         # Создание переменной для мультипроцессинга----------------------------------------------------------------
         itera = ([candles, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
                   pogl_short, mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
