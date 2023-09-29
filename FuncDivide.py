@@ -67,38 +67,6 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
         stop_loss_proboi_short = int(params['stop_loss_proboi_short'])
     else:
         stop_loss_proboi_short = 0
-    if 'no15' in params:
-        no15 = int(params['no15'])
-    else:
-        no15 = 0
-    if 'no16' in params:
-        no16 = int(params['no16'])
-    else:
-        no16 = 0
-    if 'no17' in params:
-        no17 = int(params['no17'])
-    else:
-        no17 = 0
-    if 'no18' in params:
-        no18 = int(params['no18'])
-    else:
-        no18 = 0
-    if 'm1_enter_long' in params:
-        m1_enter_long = int(params['m1_enter_long'])
-    else:
-        m1_enter_long = 0
-    if 'm1_enter_short' in params:
-        m1_enter_short = int(params['m1_enter_short'])
-    else:
-        m1_enter_short = 0
-    if 'm1_exit_long' in params:
-        m1_exit_long = int(params['m1_exit_long'])
-    else:
-        m1_exit_long = 0
-    if 'm1_exit_short' in params:
-        m1_exit_short = int(params['m1_exit_short'])
-    else:
-        m1_exit_short = 0
     # ---------------------------------------------------------------------------------------------------------------------------------------------------
     # Переменные--------------------------------------------------------------------------------------------------------------
     # ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -114,10 +82,6 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
     contrS = float(params['contrS'])
     hammerContLong = int(params['hammerContLong'])
     hammerContrShort = int(params['hammerContrShort'])
-    otnosProdlenLong = float(params['otnosProdlenLong'])
-    otnosProdlenShort = float(params['otnosProdlenShort'])
-    hammerProdlenLong = int(params['hammerProdlenLong'])
-    hammerProdlenShort = int(params['hammerProdlenShort'])
     quatroLong = int(params['quatroLong'])
     quatroShort = int(params['quatroShort'])
     signalPoglLong = int(params['signalPoglLong'])
@@ -150,17 +114,12 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
     # Блок инициализации переменных
     # -----------------------------------------------------------------------------------------------------------------
     quant = 0
-    fQuant = 0
     counterLong = 0
     counterShort = 0
     signalLong = 0
     signalShort = 0
     signalLongP = 0
     signalShortP = 0
-    fCounterLong = 0
-    fCounterShort = 0
-    fSignalLong = 0
-    fSignalShort = 0
     ws_actions = 0
     dopS_counter = 0
     dopL_counter = 0
@@ -193,10 +152,6 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
     simple_short_enter = False
     time_short_exit = False
     bh_short_exit = False
-    # Тестовые переменные ----------------------------------------------------------------------------------------------
-    razvorot_from_long = False
-    razvorot_from_short = False
-    comeback = False
     # ------------------------------------------------------------------------------------------------------------------
     # Основные расчеты
     # ------------------------------------------------------------------------------------------------------------------
@@ -222,51 +177,6 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
         time_from_exit_long += 1
         time_from_exit_short += 1
         # -------------------------------------------------------------------------------------------------------------
-        # Выключение лет
-        # --------------------------------------------------------------------------------------------------------------------------
-        if no15 and 20150000 < int(candle.date) < 20160000 and hammer < 1000:
-            hammer = 10000
-        if no15 and int(candle.date) > 20160000 and hammer > 900:
-            hammer = 0
-        if no16 and 20160000 < int(candle.date) < 20170000 and hammer < 1000:
-            hammer = 10000
-        if no16 and int(candle.date) > 20170000 and hammer > 900:
-            hammer = 0
-        if no17 and 20170000 < int(candle.date) < 20180000 and hammer < 1000:
-            hammer = 10000
-        if no17 and int(candle.date) > 20180000 and hammer > 900:
-            hammer = 0
-        if no18 and 20180000 < int(candle.date) < 20190000 and hammer < 1000:
-            hammer = 10000
-        if no18 and int(candle.date) > 20190000 and hammer > 900:
-            hammer = 0
-        # -------------------------------------------------------------------------------------------------------------
-        # Закрытие фантомов
-        # --------------------------------------------------------------------------------------------------------------------------
-        if fCounterLong >= exitLong and fQuant == 1:
-            fQuant = 0
-            fCounterLong = 0
-            deal_type1 = 'Phanton long close'
-            if fSignalShort > 0:
-                if hammer < hammerProdlenLong and fSignalLong / fSignalShort <= otnosProdlenLong \
-                        and hammerProdlenLong > 0:
-                    hammer = hammerProdlenLong
-                    c_prodl_long += 1
-            fSignalLong = 0
-            fSignalShort = 0
-        # закрытие шорт
-        if fCounterShort >= exitShort and fQuant == -1:
-            fQuant = 0
-            fCounterShort = 0
-            deal_type1 = 'Phantom short close'
-            if fSignalLong > 0:
-                if hammer < hammerProdlenShort and fSignalShort / fSignalLong <= otnosProdlenShort \
-                        and hammerProdlenShort > 0:
-                    hammer = hammerProdlenShort
-                    c_prodl_short += 1
-            fSignalShort = 0
-            fSignalLong = 0
-        # -------------------------------------------------------------------------------------------------------------
         # Расчет закрытия лонг
         # -------------------------------------------------------------------------------------------------------------
         if longCondition:
@@ -279,12 +189,12 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             if stop_loss_close_long and candles[i-1].close < stop_loss_long_value and counterLong:
                 time_long_exit = True
                 bh_long_exit = True
-                deal_type1 = 'Exit long'
+                deal_type1 = 'Stop loss Exit long'
                 c_sl_long += 1
             if stop_loss_proboi_long and candle.low < stop_loss_long_value and counterLong:
                 time_long_exit = True
                 bh_long_exit = True
-                deal_type1 = 'Exit long'
+                deal_type1 = 'Stop loss Exit long'
                 c_sl_long += 1
             # Поглощение лонг ------------------------------------------------------------------------------------------
             if pogloshenije and pogl_long > candles[i - 1].close and quant >= 0:
@@ -292,18 +202,7 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
                 c_pogl_long += 1
                 time_long_exit = True
                 bh_long_exit = True
-                if comeback:
-                    bh_short_exit = False
-                comeback = False
                 pogloshenije = False
-            # Разворот после слабого сигнала ---------------------------------------------------------------------------
-            if time_long_exit and quant == -1:
-                time_long_exit = False
-                time_short_exit = True
-        # выход из разворотной сделки, если бх уже кончается -------------------------------------------------------
-        if quant == 1 and hammer == 1 and False:
-            time_long_exit = True
-            deal_type1 = 'Exit long'
         # --------------------------------------------------------------------------------------------------------------
         # Расчет закрытия шорт: условия
         # --------------------------------------------------------------------------------------------------------------
@@ -323,20 +222,13 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             if stop_loss_close_short and candles[i-1].close > stop_loss_short_value > 0:
                 time_short_exit = True
                 bh_short_exit = True
-                deal_type1 = 'Exit short'
+                deal_type1 = 'stop loss Exit short'
                 c_sl_short += 1
             if stop_loss_proboi_short and candle.high > stop_loss_short_value > 0:
                 time_short_exit = True
                 bh_short_exit = True
-                deal_type1 = 'Exit short'
+                deal_type1 = 'stop loss Exit short'
                 c_sl_short += 1
-            if time_short_exit and quant == 1:
-                time_short_exit = False
-                time_long_exit = True
-        # выход из разворотной сделки по окончанию бх
-        if quant == -1 and hammer == 1 and False:
-            time_short_exit = True
-            deal_type1 = 'Exit short'
         # --------------------------------------------------------------------------------------------------------------
         # Расчет закрытия сделок: действия -----------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
@@ -358,10 +250,6 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             time_short_exit = False
             pogloshenije = False
             time_from_exit_short = 0
-            if razvorot_from_short:
-                buyPrice = closeShortPrice
-                quant = 1
-                razvorot_from_short = False
         if bh_short_exit:
             hammer = hammerShortFV
             shortCondition = False
@@ -401,10 +289,6 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             time_long_exit = False
             pogloshenije = False
             time_from_exit_long = 0
-            if razvorot_from_long:
-                sellPrice = closeLongPrice
-                quant = -1
-                razvorot_from_long = False
         if bh_long_exit:
             # просто выход по времени
             hammer = hammerLongFV
@@ -435,28 +319,8 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
                 deal_type1 != 'Pogl short':
             simple_long_enter = True
             longCondition = True
-            comeback = True
             c_long_deals += 1
             deal_type1 = 'Long'
-            # Закрытие фантомных сделок
-            if fQuant == 1:
-                fQuant = 0
-                fCounterLong = 0
-                fSignalLong = 0
-                fSignalShort = 0
-                if deal_type2 == '':
-                    deal_type2 = 'Phantom long close'
-                else:
-                    deal_type3 = 'Phantom long close'
-            if fQuant == -1:
-                fQuant = 0
-                fCounterShort = 0
-                fSignalLong = 0
-                fSignalShort = 0
-                if deal_type2 == '':
-                    deal_type2 = 'Phantom short close'
-                else:
-                    deal_type3 = 'Phantom short close'
         # ---------------------------------------------------------------------------------------------------------
         # Расчет открытия шорт
         # ---------------------------------------------------------------------------------------------------------
@@ -468,27 +332,8 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             shortCondition = True
             deal_type1 = 'Short'
             c_short_deals += 1
-            # Закрытие фантомных сделок при начале реальной сделки -----------------------------------------------------
-            if fQuant == 1:
-                fQuant = 0
-                fCounterLong = 0
-                fSignalLong = 0
-                fSignalShort = 0
-                if deal_type2 == '':
-                    deal_type2 = 'Phantom long close'
-                else:
-                    deal_type3 = 'Phantom long close'
-            if fQuant == -1:
-                fQuant = 0
-                fCounterShort = 0
-                fSignalLong = 0
-                fSignalShort = 0
-                if deal_type2 == '':
-                    deal_type2 = 'Phantom short close'
-                else:
-                    deal_type3 = 'Phantom short close'
         # Расчет цены входа -------------------------------------------------------------------------------------------
-        if simple_short_enter or razvorot_from_long:
+        if simple_short_enter:
             quant = -1
             sellPrice = minC - prosk
             stop_loss_short_value = int(candle.low * (1 + stop_loss_percent_short))
@@ -499,8 +344,7 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             if sellPrice > candle.high:
                 sellPrice = candle.high
             simple_short_enter = False
-            razvorot_from_long = False
-        if simple_long_enter or razvorot_from_short:
+        if simple_long_enter:
             quant = 1
             buyPrice = maxC + prosk
             stop_loss_long_value = int(candle.high * (1 - stop_loss_percent_long))
@@ -511,39 +355,9 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
             if buyPrice < candle.low:
                 buyPrice = candle.low
             simple_long_enter = False
-            razvorot_from_short = False
         # ---------------------------------------------------------------------------------------------------------------------------------------------------
         # Фантомные сделки--------------------------------------------------------------------------------------------------
         # ---------------------------------------------------------------------------------------------------------------------------------------------------
-        if fantomDeals and hammer > 0 and quant == 0:
-            # открытие лонг
-            if candle.high >= maxC and candle.low > minC and fQuant == 0:
-                fQuant = 1
-                # открытие шорт
-                if deal_type1 == '':
-                    deal_type1 = 'Phantom long enter'
-                else:
-                    deal_type2 = 'Phantom long enter'
-            if candle.low <= minC and candle.high < maxC and fQuant == 0:
-                fQuant = -1
-                if deal_type1 == '':
-                    deal_type1 = 'Phantom short enter'
-                else:
-                    deal_type2 = 'Phantom short enter'
-        if fantomDeals and quant == 0 and fQuant != 0:
-            # счётчики
-            if candle.high >= maxC and candle.low > minC:
-                fSignalLong = fSignalLong + 1
-                if fQuant == 1:
-                    fCounterLong = 1
-            if candle.low <= minC and candle.high < maxC:
-                fSignalShort = fSignalShort + 1
-                if fQuant == -1:
-                    fCounterShort = 1
-            if candle.close >= candle.open and fQuant == -1:
-                fCounterShort = fCounterShort + 1
-            if candle.close <= candle.open and fQuant == 1:
-                fCounterLong = fCounterLong + 1
         # ---------------------------------------------------------------------------------------------------------------------
         # Расчет счетчиков-------------------------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
@@ -593,7 +407,7 @@ def signalgenerator(candles, params, arr_chanel_long=None, arr_chanel_short=None
 
         if all_export:
             massif = [buyPrice, closeLongPrice, sellPrice, closeShortPrice, quant, counterLong, counterShort,
-                      signalLong, signalShort, fQuant, fCounterLong, fCounterShort, fSignalLong, fSignalShort, hammer,
+                      signalLong, signalShort, hammer,
                       maxC, minC, pogl_long, pogl_short, deal_type1, deal_type2, deal_type3, stop_loss_long_value,
                       stop_loss_short_value]
         arr.append(massif)
@@ -681,7 +495,7 @@ def chanelestimate(candles, params, arr_signal, arr_mm_long=None, arr_mm_short=N
         to_export = []
         export_result = ['date', 'time', 'open', 'high', 'low', 'close', 'buyPrice', 'closeLongPrice', 'sellPrice',
                          'closeShortPrice', 'quant', 'counterLong', 'counterShort', 'signalLong', 'signalShort',
-                         'fQuant', 'fCounterLong', 'fCounterShort', 'fSignalLong', 'fSignalShort', 'hammer', 'max',
+                         'hammer', 'max',
                          'min', 'pogl_long', 'pogl_short', 'deal_type1', 'deal_type2', 'deal_type3', 'long condition',
                          'short condition',  'Cash', 'currentMonthlyDD', 'currentCapital', 'currentDrawDown', 'quant',
                          'mm_long', 'mm_short']
@@ -959,6 +773,7 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
         pogl_long = None
         mm_long = None
         mm_short = None
+        startTime = time()
         # Создание переменной для мультипроцессинга----------------------------------------------------------------
         itera = ([candles, parametersWithRange, dimen0, dimen1, i, chanel_long, chanel_short, pogl_long,
                   pogl_short, mm_long, mm_short, daily_export] for i in range(0, dimen0 * dimen1 * dimen2))
@@ -968,7 +783,7 @@ def quarter_test(instrument, test_name, candles_filename, daily_export=False):
         # Поиск оптимального значения в таблице ------------------------------------------------------------------------
         # --------------------------------------------------------------------------------------------------------------
         esttime = time() - startTime
-        print(esttime)
+        print(esttime/3600)
         poisktochki = result_list[0][11]
         optim = 0
         for i in range(0, len(result_list)):
